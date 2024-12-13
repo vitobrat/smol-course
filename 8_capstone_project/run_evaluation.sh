@@ -1,4 +1,8 @@
 #!/bin/bash
+export HF_CACHE="$HOME/.cache/huggingface"
+export TRANSFORMERS_CACHE="$HF_CACHE"
+export HF_HUB_CACHE="$HF_CACHE"
+export HF_HOME="$HF_CACHE"
 
 # Default values
 num_fewshots=0
@@ -37,7 +41,9 @@ tasks_dir="$script_dir/submitted_tasks"
 
 # Create output directory if it doesn't exist
 output_dir="$script_dir/results/$model_id"
-mkdir -p "$output_dir"
+if [ ! -d "$output_dir" ]; then
+    mkdir -p "$output_dir"
+fi
 
 # Collect all Python files (excluding run_evaluation.py)
 task_files=()
@@ -69,10 +75,11 @@ tasks_param=${tasks_param%,}  # Remove trailing comma
 # Build the custom-tasks parameter string
 custom_tasks_param=$(IFS=,; echo "${task_files[*]}")
 
-python -m lighteval accelerate --model_args "pretrained=$model_id" \
-    --tasks "$tasks_param" \
-    --custom_tasks "$custom_tasks_param" \
-    --output_dir "$output_dir"
+lighteval accelerate "pretrained=$model_id" \
+    "$tasks_param" \
+    --custom-tasks "$custom_tasks_param" \
+    --output-dir . \
+    --override-batch-size 512
 
 exit_code=$?
 
